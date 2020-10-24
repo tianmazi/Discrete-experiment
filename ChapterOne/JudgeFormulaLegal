@@ -1,0 +1,81 @@
+#include<stdio.h>
+#include<string.h>
+
+#pragma warning(disable:4996
+
+/*
+判断1  判断字符是否为其他五个运算符的一个
+*/
+bool judge_1(char an) {
+	char symbol[6] = {'&','~','^','>','=' };
+	for (int i = 0;i < 5;i++) {
+		if (an == symbol[i]) return true;
+	}
+		return false;
+
+}
+/*
+判断二 判断字符是否在A-Z之间
+*/
+bool judge_2(char typ) {
+	if ((typ >= 'A' && typ <= 'Z')||typ=='(') return true;
+	return false;
+}
+/*
+判断三 判断运算符前后是否为字母
+*/
+bool judge_3(char a, char an, char b) {
+	if (an == '!') {
+		if (judge_2(b)&&(a!=')'))return true;
+		return false;
+	}
+	else if (judge_1(an)) {
+		if ((judge_2(a)||a==')') && (judge_2(b)||b=='(')) return true;
+		return false;
+	}
+	return false;
+}
+/*
+使用递归判断正反括号是否匹配 
+*/
+bool brackets(char ch[],int i,int jud){
+	if (ch[i] == '(') {
+		jud++;
+	}
+	if (ch[i] == ')') {
+		jud--;
+	}
+	i++;
+	if (ch[i] == NULL)
+		if (jud == 0) return true;
+		else return false;
+	else brackets(ch, i, jud);
+
+}
+
+int main() {
+	//char ch[55] = "!(A&B)^(C=D)&((M~D)^V~(J>K))";
+	char ch[55];
+	printf("算式符号:\n 否定'!' \t合取'&' \t析取'~'");
+	printf("\n 排斥或'^' \t条件'>' \t双条件'='\n");
+	printf("请输入要判断的运算式:\n");
+	scanf("%s", ch);
+
+	//判断括号是否匹配
+	if (!(brackets(ch, 0, 0))) {
+		printf("输入错误");
+		return 0;
+	}
+	//遍历字符数组，判断运算符是否合法
+	for (int i = 0; ch[i]!=NULL; i++) {
+		if (ch[i] == '!' || judge_1(ch[i])) {
+			if (!(judge_3(ch[i - 1], ch[i], ch[i + 1]))) {
+				printf("输入有误");
+				return 0;
+			}
+		}
+
+	}
+	printf("\n输入正确");
+	return 0;
+}
