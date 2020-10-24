@@ -1,0 +1,312 @@
+#include<stdio.h>
+#include<string.h>
+#include <stdlib.h>
+#include<math.h>
+#include<windows.h>
+
+#define M 100
+#pragma warning(disable:4996)
+struct formula
+{
+	char form[100];
+	int value;
+	char opera;
+} list[100];
+
+int son[50];//用该数组存储最底层节点的位置
+int son_value[30],value_num=0;//存储各个变元的值
+char variable[30];//存储各个变元
+int truth_table[20][20];//存储真值表
+
+int son_num = 0;//最底层节点的数量
+char symbol[6] = { '&','~','^','>','=' };//与 或 排斥或 条件 双条件
+
+
+void strcopy(char s1[], char s2[], int start, int end) {//要复制的字符串，存入的字符串，开始位置，结束位置
+	int j = 0;
+		for (int i = start; i <= end; i++,j++) {
+			s2[j] = s1[i];
+			
+	}
+		s2[j] = '\0';
+}
+
+//void remove_brackets(char s[]) {
+//	/*  去除算式最外层括号*/
+//	char s2[M];
+//	/*int find=0,len=strlen(s);
+//	for (int i = 0; i < len; i++) {
+//		if (s[i] == '(') i++;
+//		if (s[i] == ')') i--;
+//	}*/
+//	if (s[0] == '(' && s[strlen(s) - 1] == ')') {
+//		strcopy(s, s2,1,strlen(s)-2);
+//	memset(s, 0, sizeof(s));
+//	strcpy(s,s2);
+//	}	
+//}
+
+void kill_bracket(char s[])//判断首尾是括号且首位左括号不和算式中的任何右括号匹配的话，去掉两边的括号
+{
+    int i = 1;
+    int left = 0;
+    if (s[0] == '(')
+    {
+        left++;
+        while (i < strlen(s) - 1)
+        {
+            if (s[i] == ')')
+            {
+                if (left == 1)
+                    return;
+                left--;
+            }
+            if (s[i] == '(')
+                left++;
+            i++;
+        }
+        char temp[M];
+        strcopy(s, temp, 1, strlen(s) - 2);
+        memset(s, 0, sizeof(s));
+        strcpy(s, temp);
+    }
+}
+
+	/*建树----------------------------------------------------
+	判断一 第一个字符是非 第二个字符是(结尾是）。
+	判断二 第一个字符是括号,找到后面最外层后的最近运算符
+	判断三 直接从第一个运算符分隔算式
+	*/
+void build_tree(char s[],int node) {
+	printf("%s\n", s);
+	int len = strlen(s);
+	char s1[M],s2[M];
+	kill_bracket(s);
+
+	if (s[0] == '!' && s[1] == '(' && s[len - 1] == ')') {
+		list[node].opera = s[0];
+		strcpy(list[node].form, s);
+		strcopy(s, s1, 2, len - 2);
+		build_tree(s1, node * 2);
+		return;
+	}
+
+	if (s[0] == '(') {
+		int find = 0,bra=0;
+		for (int i = 0; i < len; i++) {
+			if (s[i] == ')') { find--; bra++; }
+			if (s[i] == '(') { find++; bra++; }
+			if (find == 0 && (s[i] == '&' || s[i] == '~' || s[i] == '^' || s[i] == '>' || s[i] == '=')) {
+				list[node].opera = s[i];
+				strcpy(list[node].form, s);
+				strcopy(s, s1, 1, i - 2);
+				strcopy(s, s2, i + 1, len - 1);
+				build_tree(s1, node * 2);
+				build_tree(s2, node * 2 + 1);
+				return;
+			}
+		}
+
+	}
+	if (len <= 2) {
+		if (len == 2) {
+
+			list[node].opera = s[0];
+			strcpy(list[node].form, s);
+			strcopy(s, s1, 1, 1);
+			build_tree(s1, node * 2);
+			return;
+
+		}
+		if (len == 1) {
+			strcpy(list[node].form, s);
+			list[node].opera = '?';
+			son[son_num] = node;
+			son_num++;
+			int fin = 0;//判断变元数组里有无相同变元
+			int i;
+			for (i = 0; i < value_num; i++) {
+				if (variable[i] == s[0]) fin = 1;
+			}
+			if (fin == 0) {
+				variable[i] = s[0];
+				value_num++; }
+			
+			return;
+		}
+	}
+
+	for (int i = 0; i < 4; i++) {
+		if (s[i] == '&' || s[i] == '~' || s[i] == '^' || s[i] == '>' || s[i] == '=') {
+			list[node].opera = s[i];
+			strcpy(list[node].form, s);
+			strcopy(s, s1, 0, i - 1);
+			strcopy(s, s2, i + 1, len - 1);
+			build_tree(s1, node * 2);
+			build_tree(s2, node * 2 + 1);
+			return;
+		}
+	}
+
+}
+
+int calculation(int node) {
+	/*计算真值*/
+	if (list[node].opera == '?') return list[node].value;
+
+	if (list[node].opera == '!') { 
+		int lson = calculation(node*2);
+		if (lson == 1) {
+			list[node].value = 0;
+			return list[node].value;
+		}
+		else {
+			list[node].value = 1;
+			return list[node].value;
+		}
+	}
+	int lson = calculation(node * 2);
+	int rson = calculation(node * 2 + 1);
+	switch (list[node].opera) {
+	case '&': {//与
+		if (lson == 1 && rson == 1) {
+			list[node].value = 1;
+			return list[node].value;
+		}
+		else {
+			list[node].value = 0;
+			return list[node].value;
+		}
+	}
+	case '~': {//或
+		if (lson == 1 || rson == 1) {
+			list[node].value = 1;
+			return list[node].value;
+		}
+		else {
+			list[node].value = 0;
+			return list[node].value;
+		}
+	}
+	case '^': {//排斥或
+		if ((lson == 1 & rson == 0) || (lson == 0 & rson == 1)) {
+			list[node].value = 1;
+			return list[node].value;
+		}
+		else {
+			list[node].value = 0;
+			return list[node].value;
+		}
+	}
+	case '>': {//条件
+		if (lson == 1 && rson == 0) {
+			list[node].value = 0;
+			return list[node].value;
+		}
+		else {
+			list[node].value = 1;
+			return list[node].value;
+		}
+	}
+	case '=': {//双条件
+		if (lson == rson) {
+			list[node].value = 1;
+			return list[node].value;
+		}
+		else {
+			list[node].value = 0;
+			return list[node].value;
+
+		}
+	default:return  list[node].value;
+	}
+	}
+
+	
+}
+
+
+void cal_table() {
+	/*计算真值表，并存入一个二维数组中*/
+	
+	int count = pow(2, value_num);
+	int k;
+	for (int i = 0; i <count; i++) {
+		k=i;
+		int j;
+		for (j = 0; j < value_num; j++) {
+			if (k % 2) {
+				son_value[j] = 1;
+				truth_table[i][j]=1;
+			}
+		else {
+				son_value[j] = 0;
+				truth_table[i][j] = 0;
+			}
+		k /= 2;
+		}
+		for (j = 0; j < son_num; j++) {
+			char c = (list[son[j]].form)[0];
+			if (c == variable[j]) {
+				list[son[j]].value = son_value[j];
+			}
+		}
+	
+		truth_table[i][value_num] =calculation(1);
+	}
+
+
+}
+void progress()		//进度条
+{
+	int j;
+	printf("正在计算真值表...... \n");
+	printf("\n");
+	for (int i = 0; i <= 100; i++)
+	{
+		for (j = 0; j < i; j++)		//打印进度条
+			printf("*");
+		for (j = 0; j < 100 - i; j++)
+			printf("-");
+		printf(" ");
+		
+		printf("%d%",i);// 打印百分比
+		Sleep(20);
+		//for(j=0;j<150;j++)
+		printf("\r");//回删，使进度条在原地变化
+	}
+	system("cls");
+}
+
+void print_table() {//打印变元公式及真值表
+	for (int i = 0; i < value_num; i++) {
+		printf("%6c", variable[i]);
+	}
+	printf("  %s\n", list[1].form);
+	for (int i = 0; i < pow(2, value_num); i++) {
+		for (int j = 0; j < value_num+1; j++) {
+			printf("%5d", truth_table[i][j]);
+		}
+		printf("\n");
+	}
+}
+
+/*
+* 例子
+* (p&q)~(!p&k)~(q&r)
+* p~(!p>(q~(!q>r)))
+* (p>(q&r))&(!p>(!q&!r))
+* 
+*/
+
+int main() {
+	char st[M];
+	printf("请输入要求真值表的算式:\n");
+	int i=scanf("%s", st);
+	strupr(st);//把字母全换成大写
+	//progress();
+	build_tree(st, 1);
+	cal_table();
+	print_table();
+	printf("%d", son_num);
+}
