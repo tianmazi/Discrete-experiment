@@ -136,15 +136,24 @@ void build_tree(char s[],int node) {
 		}
 	}
 
-	for (int i = 0; i < 4; i++) {
-		if (s[i] == '&' || s[i] == '~' || s[i] == '^' || s[i] == '>' || s[i] == '=') {
-			list[node].opera = s[i];
-			strcpy(list[node].form, s);
-			strcopy(s, s1, 0, i - 1);
-			strcopy(s, s2, i + 1, len - 1);
-			build_tree(s1, node * 2);
-			build_tree(s2, node * 2 + 1);
-			return;
+	for (int i = 0; i <= 4; i++) {
+		int j,fin=0,sym=0;
+		for (j = 0; j < len; j++) {
+
+			if (s[j] == '(' || s[j] == ')') fin = 1;
+			if (s[j] == symbol[i]) {
+				sym = 1;
+				break;
+			}
+		}
+		if (fin==0 && sym==1) {
+				list[node].opera = s[j];
+				strcpy(list[node].form, s);
+				strcopy(s, s1, 0, j - 1);
+				strcopy(s, s2, j + 1, len - 1);
+				build_tree(s1, node * 2);
+				build_tree(s2, node * 2 + 1);
+				return;
 		}
 	}
 
